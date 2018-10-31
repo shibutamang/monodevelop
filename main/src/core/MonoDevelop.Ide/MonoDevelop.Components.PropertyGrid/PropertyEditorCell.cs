@@ -31,6 +31,7 @@ using System.ComponentModel;
 using Gdk;
 using Gtk;
 using MonoDevelop.Ide.Fonts;
+using MonoDevelop.Core;
 
 namespace MonoDevelop.Components.PropertyGrid
 {
@@ -40,11 +41,11 @@ namespace MonoDevelop.Components.PropertyGrid
 		ITypeDescriptorContext context;
 		Widget container;
 		EditorManager editorManager;
-		
+
 		public object Instance {
 			get { return context.Instance; }
 		}
-		
+
 		public PropertyDescriptor Property {
 			get { return context.PropertyDescriptor; }
 		}
@@ -52,15 +53,15 @@ namespace MonoDevelop.Components.PropertyGrid
 		protected ITypeDescriptorContext Context {
 			get { return context; }
 		}
-		
+
 		public Control Container {
 			get { return container; }
 		}
-		
+
 		internal EditorManager EditorManager {
 			get { return editorManager; }
 		}
-		
+
 		internal void Initialize (Widget container, EditorManager editorManager, ITypeDescriptorContext context)
 		{
 			this.container = container;
@@ -72,7 +73,7 @@ namespace MonoDevelop.Components.PropertyGrid
 			layout = new Pango.Layout (container.PangoContext);
 			layout.Width = -1;
 			layout.FontDescription = FontService.SansFont.CopyModified (Ide.Gui.Styles.FontScale11);
-			
+
 			this.context = context;
 			Initialize ();
 		}
@@ -84,7 +85,7 @@ namespace MonoDevelop.Components.PropertyGrid
 				return null;
 			return new EditSession (container, context, ed);
 		}
-		
+
 		protected virtual string GetValueText ()
 		{
 			var val = Value;
@@ -92,12 +93,12 @@ namespace MonoDevelop.Components.PropertyGrid
 				return Property.Converter.ConvertToString (context, val);
 			return "";
 		}
-		
+
 		protected virtual string GetValueMarkup ()
 		{
 			return null;
 		}
-		
+
 		string GetNormalizedText (string s)
 		{
 			if (s == null)
@@ -106,18 +107,25 @@ namespace MonoDevelop.Components.PropertyGrid
 			int i = s.IndexOf ('\n');
 			if (i == -1)
 				return s;
-			
+
 			s = s.TrimStart ('\n', ' ', '\t');
 			i = s.IndexOf ('\n');
 			if (i != -1)
 				return s.Substring (0, i) + "...";
 			return s;
 		}
-		
+
 		public object Value {
-			get { return Instance != null ? Property.GetValue (Instance) : null; }
+			get {
+				try {
+					return Instance != null ? Property.GetValue (Instance) : null;
+				} catch (Exception e) {
+					LoggingService.LogInternalError ("Hit Bug 706892", e);
+				}
+				return null;
+			}
 		}
-		
+
 		protected virtual void Initialize ()
 		{
 			string s = GetValueMarkup ();
